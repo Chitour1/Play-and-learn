@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة الألعاب التعليمية - السيرة النبوية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0c1427;
+        }
+        #background-stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,0) 2px),
+                radial-gradient(white, rgba(255,255,255,0) 1px);
+            background-size: 800px 800px, 400px 400px;
+            background-position: 0 0, 200px 200px;
+            animation: stars-move 180s linear infinite;
+            z-index: -1;
+        }
+        @keyframes stars-move {
+            from { background-position: 0 0, 200px 200px; }
+            to { background-position: -10000px 5000px, -10000px 5000px; }
+        }
+        .glass-container {
+            background: rgba(15, 23, 42, 0.6); /* slate-900 with opacity */
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 45px rgba(0,0,0,0.2);
+        }
+        .game-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .game-card:hover {
+            transform: translateY(-10px) scale(1.03);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border-color: #d69e2e;
+        }
+        .game-card.disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .game-card.disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .option-btn {
+            transition: all 0.3s ease;
+            border-width: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #f1f5f9;
+        }
+        .option-btn:hover:not(:disabled) {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #d69e2e; /* Gold */
+        }
+        .correct {
+            background: linear-gradient(135deg, #10b981, #059669) !important; /* Emerald */
+            color: white !important;
+            border-color: #34d399 !important;
+            animation: pulse-correct 1s infinite;
+        }
+        .incorrect {
+            background: linear-gradient(135deg, #f43f5e, #dc2626) !important; /* Rose */
+            color: white !important;
+            border-color: #fb7185 !important;
+            animation: shake-incorrect 0.5s;
+        }
+        @keyframes pulse-correct {
+            0%, 100% { box-shadow: 0 0 15px #34d399; }
+            50% { box-shadow: 0 0 25px #6ee7b7; }
+        }
+        @keyframes shake-incorrect {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .explanation {
+            border-right: 4px solid #d69e2e; /* Gold */
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .gold-btn {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(135deg, #f6e05e, #d69e2e);
+            color: #4a2c0f;
+            border: none;
+        }
+        .gold-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 7px 25px rgba(246, 224, 94, 0.3);
+        }
+        .fade-in { animation: fadeIn 0.7s ease-in-out; }
+        .fade-out { animation: fadeOut 0.5s ease-in-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-20px) scale(0.95); }
+        }
+        #confetti-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;
+        }
+        .gold-text {
+            background: -webkit-linear-gradient(#f6e05e, #d69e2e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .question-jump-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease;
+        }
+        .question-jump-btn:hover {
+            background: rgba(214, 158, 46, 0.8); /* Gold hover */
+            color: #4a2c0f;
+            border-color: #f6e05e;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 text-slate-100">
+
+    <div id="background-stars"></div>
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Audio Elements -->
+    <audio id="background-music" loop preload="auto"><source src="https://archive.org/download/brave-down.-com-1753087589/%5BBraveDown.Com%5D%20%5B%D9%85%D9%86%20%D8%B3%D9%8A%D8%B1%D8%A8%D8%AD%20%D8%A7%D9%84%D9%85%D9%84%D9%8A%D9%88%D9%86%20-%5D%20%5B1753087589%5D%20.mp3" type="audio/mpeg"></audio>
+    <audio id="correct-answer-music" preload="auto"><source src="https://archive.org/download/20250721_20250721_0941/%D8%A7%D9%84%D8%AC%D9%88%D8%A7%D8%A8%20%D8%B5%D8%AD.mp3" type="audio/mpeg"></audio>
+    <audio id="incorrect-answer-music" preload="auto"><source src="https://archive.org/download/20250721_20250721_0941/%D8%A7%D9%84%D8%AC%D9%88%D8%A7%D8%A8%20%D8%BA%D9%84%D8%B7.mp3" type="audio/mpeg"></audio>
+    <audio id="tts-audio-player" preload="auto"></audio>
+
+    <div id="portal-container" class="w-full max-w-4xl p-6 md:p-10 rounded-3xl glass-container">
+        
+        <!-- Portal Home Screen -->
+        <div id="portal-home" class="text-center fade-in">
+             <h1 class="text-5xl md:text-6xl font-extrabold gold-text">بوابة الألعاب التعليمية</h1>
+             <p class="text-slate-300 mt-4 text-lg max-w-2xl mx-auto">مرحباً بك في عالم المعرفة والمرح! اختر لعبتك المفضلة وانطلق في رحلة تعليمية فريدة.</p>
+             
+             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+                <!-- Sira Game Card -->
+                <div id="start-sira-game" class="game-card glass-container p-6 rounded-2xl flex flex-col items-center justify-center">
+                    <div class="w-20 h-20 mb-4 flex items-center justify-center">
+                        <svg class="w-16 h-16 gold-text" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-5.523 0-10 4.477-10 10s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM8 11.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm8 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm-4 5.5c-2.33 0-4.32-1.45-5.12-3.5h10.24c-.8 2.05-2.79 3.5-5.12 3.5z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">السيرة النبوية</h3>
+                    <p class="text-sm text-slate-400 mt-1">اختبر معلوماتك</p>
+                </div>
+                <!-- Placeholder Card 1 -->
+                <div class="game-card glass-container p-6 rounded-2xl flex flex-col items-center justify-center disabled">
+                    <div class="w-20 h-20 mb-4 flex items-center justify-center">
+                         <svg class="w-16 h-16 text-slate-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-400">التاريخ الإسلامي</h3>
+                    <p class="text-sm text-slate-500 mt-1">قريباً...</p>
+                </div>
+                <!-- Placeholder Card 2 -->
+                <div class="game-card glass-container p-6 rounded-2xl flex flex-col items-center justify-center disabled">
+                    <div class="w-20 h-20 mb-4 flex items-center justify-center">
+                        <svg class="w-16 h-16 text-slate-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-400">علوم القرآن</h3>
+                    <p class="text-sm text-slate-500 mt-1">قريباً...</p>
+                </div>
+             </div>
+        </div>
+
+        <!-- Quiz Container (Initially Hidden) -->
+        <div id="quiz-content" class="hidden">
+            <div id="header" class="text-center mb-8">
+                <div class="flex justify-between items-center">
+                    <button id="back-to-home-btn-quiz" title="العودة للرئيسية" class="text-slate-300 hover:text-yellow-300 transition-colors p-2 rounded-full hover:bg-white/10">
+                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                    </button>
+                    <h1 class="text-3xl md:text-4xl font-bold text-slate-100">السيرة النبوية</h1>
+                    <div id="user-info" class="text-xs text-slate-400 w-28 text-left truncate"></div>
+                </div>
+                <div id="progress-container" class="w-full bg-black/20 rounded-full h-3 mt-6 overflow-hidden">
+                    <div id="progress-bar" class="bg-gradient-to-r from-yellow-400 to-amber-500 h-3 rounded-full transition-all duration-500 ease-out"></div>
+                </div>
+                <div class="flex justify-between items-center mt-4">
+                     <div class="flex items-center gap-2">
+                        <button id="jump-to-question-btn" title="الانتقال لسؤال" class="text-slate-300 hover:text-yellow-300 transition-colors p-2 rounded-full hover:bg-white/10">
+                            <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        </button>
+                        <button id="leaderboard-btn" title="لوحة الصدارة" class="text-slate-300 hover:text-yellow-300 transition-colors p-2 rounded-full hover:bg-white/10">
+                            <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L12 5"/><path d="M12 19 L12 22"/><path d="M5 12 L2 12"/><path d="M22 12 L19 12"/><path d="M17 17 L19 19"/><path d="M5 7 L7 5"/><path d="M7 19 L5 17"/><path d="M19 5 L17 7"/><circle cx="12" cy="12" r="7"/></svg>
+                        </button>
+                     </div>
+                     <div class="flex items-center gap-2">
+                        <button id="hint-btn" title="تلميح" class="hidden text-slate-300 hover:text-yellow-300 transition-colors p-2 rounded-full hover:bg-white/10 flex items-center gap-1">
+                            <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" /></svg>
+                            <span>تلميح</span>
+                        </button>
+                        <div id="question-counter" class="text-sm font-semibold text-slate-300"></div>
+                     </div>
+                     <div id="score-display" class="text-lg font-bold text-yellow-300">النتيجة: 0</div>
+                </div>
+            </div>
+
+            <div id="question-area">
+                <h2 id="question-text" class="text-2xl font-semibold text-white mb-6 text-center leading-relaxed"></h2>
+                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+
+            <div id="feedback-area" class="mt-6 hidden">
+                 <p id="motivation-text" class="text-center text-xl font-semibold mb-4"></p>
+                <div id="explanation" class="explanation p-4 rounded-lg">
+                    <h3 class="font-bold text-lg mb-2 text-slate-100">الإجابة النموذجية:</h3>
+                    <p id="explanation-text" class="text-slate-200 leading-loose"></p>
+                </div>
+            </div>
+
+            <div id="navigation" class="mt-8 text-center">
+                <button id="next-btn" class="gold-btn font-bold py-3 px-8 rounded-full hidden flex items-center justify-center gap-2 mx-auto">
+                    <span>السؤال التالي</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="m19 12H5"/></svg>
+                </button>
+            </div>
+
+            <div id="results-screen" class="hidden text-center">
+                <h2 class="text-4xl font-bold gold-text mb-4">اكتمل الاختبار!</h2>
+                <div class="my-8">
+                    <div class="relative w-48 h-48 mx-auto flex items-center justify-center">
+                        <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+                            <circle class="text-black/20" stroke-width="8" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
+                            <circle id="score-circle" class="text-yellow-400" stroke-width="8" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" stroke-linecap="round" transform="rotate(-90 50 50)" style="stroke-dasharray: 283; stroke-dashoffset: 283; transition: stroke-dashoffset 1s ease-out;" />
+                        </svg>
+                        <span id="final-score-text" class="text-4xl font-extrabold text-white"></span>
+                    </div>
+                </div>
+                <p id="final-motivation-text" class="text-xl text-slate-200 font-semibold mb-8"></p>
+                <div class="flex justify-center gap-4">
+                    <button id="restart-btn" class="gold-btn font-bold py-3 px-10 rounded-full flex items-center justify-center gap-2 mx-auto">
+                        <span>إعادة اللعبة</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M21 21v-5h-5"/></svg>
+                    </button>
+                     <button id="back-to-home-btn" class="bg-slate-700/50 text-white font-bold py-3 px-10 rounded-full flex items-center justify-center gap-2 mx-auto hover:bg-slate-600/50 transition-colors">
+                        <span>الرئيسية</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div id="jump-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[10000] hidden fade-in">
+        <div class="glass-container w-full max-w-2xl max-h-[80vh] p-6 rounded-2xl flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-4">
+                <h2 class="text-2xl font-bold gold-text">الانتقال إلى سؤال</h2>
+                <button id="close-modal-btn" class="text-slate-300 hover:text-white text-3xl font-bold">&times;</button>
+            </div>
+            <div id="question-grid" class="overflow-y-auto grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 p-2"></div>
+        </div>
+    </div>
+
+    <div id="hint-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[10000] hidden fade-in">
+        <div class="glass-container w-full max-w-lg p-6 rounded-2xl flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-4">
+                <h2 class="text-2xl font-bold gold-text">تلميح</h2>
+                <button id="close-hint-modal-btn" class="text-slate-300 hover:text-white text-3xl font-bold">&times;</button>
+            </div>
+            <p id="hint-text" class="text-slate-200 text-lg leading-relaxed"></p>
+        </div>
+    </div>
+
+    <div id="leaderboard-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[10000] hidden fade-in">
+        <div class="glass-container w-full max-w-md max-h-[80vh] p-6 rounded-2xl flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-4">
+                <h2 class="text-2xl font-bold gold-text">لوحة الصدارة</h2>
+                <button id="close-leaderboard-modal-btn" class="text-slate-300 hover:text-white text-3xl font-bold">&times;</button>
+            </div>
+            <div id="leaderboard-content" class="overflow-y-auto space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Volume Control Button -->
+    <div id="volume-control" class="fixed bottom-5 right-5 z-50">
+        <button id="mute-btn" class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center text-white hover:bg-white/30 transition-colors">
+            <svg id="volume-on-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            <svg id="volume-off-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/></svg>
+        </button>
+    </div>
+
+    <script type="module">
+        // --- Firebase SDK Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Quiz Data ---
+        const quizData = [
+            { question: "من هو فهر بن مالك؟", options: ["أحد أعمام النبي ﷺ", "من أنبياء بني إسرائيل", "أحد أجداد النبي ﷺ، واسمه الكامل فهر بن مالك بن النضر", "أحد ملوك اليمن من التبابعة"], correctAnswerIndex: 2, explanation: "قال أبو محمد عبد الملك بن هشام: \"محمد بن عبد الله بن عبد المطلب... بن غالب بن فهر بن مالك بن النضر...\" ثم قال: \"واسمه قريش، وإليه تنسب القبيلة... من جاوز فهرًا فليس من قريش.\"", hint: "فهر هو الجد العاشر للنبي محمد ﷺ، وتجتمع إليه كل بطون قريش." },
+            { question: "من هو الذي تُنسب إليه قبيلة قريش، بحسب بعض الروايات؟", options: ["قريش بن كنانة", "فهر بن مالك بن النضر، واسمه قريش", "قصي بن كلاب، ولقبه قريش", "هاشم بن عبد مناف، واسمه الأصلي قريش"], correctAnswerIndex: 1, explanation: "\"واسمه قريش، وإليه تُنسب القبيلة، وقيل: بل فهر اسمه، وقريش لقب له. وقد رُوي عن نسابي العرب أنهم قالوا: من جاوز فهرًا فليس من قريش.\"" },
+            { question: "ما هو الاسم الحقيقي لعبد المطلب جدّ النبي محمد ﷺ؟", options: ["شيبة", "عامر", "قصي", "حارثة"], correctAnswerIndex: 0, explanation: "\"واسم عبد المطلب: شيبة بن هاشم... وقيل إن اسم عبد المطلب: عامر، والصحيح أن اسمه: شيبة، كما أشار إلى ذلك السهيلي في الروض الأنف. وسُمّي كذلك لأنه وُلِد وفي رأسه شيبة.\"", hint: "سُمي بهذا الاسم لوجود شيبة في رأسه عند ولادته." },
+            { question: "ما موقف النبي محمد ﷺ من سرد نسبه بعد عدنان؟", options: ["كان يصرّ دائمًا على ذكر النسب كاملاً إلى آدم", "كان يتوقف عند عدنان، ويقول: كذب النسابون", "لم يكن يهتم بتفاصيل النسب", "نسب نفسه إلى موسى بن عمران عن طريق إسماعيل"], correctAnswerIndex: 1, explanation: "\"اضطربت كلمة النسابين فيما بعد عدنان... وقد حُكي عن النبي ﷺ أنه كان إذا انتسب لم يتجاوز عدنان بن أدد، ثم يمسك ويقول: كذب النسابون.\"" },
+            { question: "من هي أم أبناء إسماعيل عليه السلام الاثني عشر؟", options: ["سارة بنت هاران", "رعلة بنت مضاض بن عمرو الجرهمي", "مارية القبطية", "هاجر بنت فاهو المصري"], correctAnswerIndex: 1, explanation: "\"ولد إسماعيل بن إبراهيم عليهما السلام اثني عشر رجلًا... وأمهم رعلة بنت مضاض بن عمرو الجرهمي.\" وأضاف: \"قال ابن هشام: ويقال: مضاض. وجرهم بن قحطان، وقحطان أبو اليمن كلها.\"" },
+            { question: "أين دُفن إسماعيل عليه السلام بعد وفاته؟", options: ["في الكهف بجبل حوريب", "في مغارة أم حرام في القدس", "في الحجر بجوار أمه هاجر", "في الحطيم عند مقام إبراهيم"], correctAnswerIndex: 2, explanation: "\"وكان عمر إسماعيل – فيما يذكرون – مائة سنة وثلاثين سنة، ثم مات رحمة الله وبركاته عليه، ودُفن في الحجر مع أمه هاجر.\" \"الحِجر... هو ما تركت قريش في بنائها من أساس إبراهيم.\"" },
+            { question: "لماذا أوصى النبي ﷺ بأهل مصر خيرًا؟", options: ["لأنهم من أحفاد موسى عليه السلام", "لأن فيهم قوم لوط الذين تابوا", "لأن له فيهم نسبًا وصهرًا", "لأنهم ناصروا النبي ﷺ في الهجرة"], correctAnswerIndex: 2, explanation: "\"أن رسول الله ﷺ قال: الله الله في أهل الذمة... فإن لهم نسبًا وصهرًا. قال عمر مولى غفرة: نسبهم، أن أم إسماعيل منهم. وصهرهم، أن رسول الله ﷺ تسرر فيهم.\"" },
+            { question: "ما الحدث الذي أدى إلى تفرق قبائل اليمن مثل الأوس والخزرج؟", options: ["موت تبع الأكبر بن كلي كرب", "خروج الحبشة من مكة", "سيل العرم الذي هدم سد مأرب", "وفاة النبي شيث بن آدم عليه السلام"], correctAnswerIndex: 2, explanation: "\"أرسل الله تعالى على السد السيل فهدمه، ففيه أنزل الله... ﴿فأرسلنا عليهم سيل العرم﴾... فتفرقت القبائل، فنزل آل جفنة الشام، والأوس والخزرج يثرب...\"" },
+            { question: "من هو الرجل الذي سيكون من نسل غالب بن فهر ويأتيه وحي من السماء، كما قال الكاهن سطيح؟", options: ["سيف بن ذي يزن", "أحد أنبياء بني إسرائيل", "نبيّ زكي يأتيه الوحي ويكون الملك في قومه", "ملك غساني يدحر الحبشة عن اليمن"], correctAnswerIndex: 2, explanation: "\"قال سطيح: نبي زكي، يأتيه الوحي من قبل العلي. قال: وممن هذا النبي؟ قال: رجل من ولد غالب بن فهر بن مالك بن النضر، يكون الملك في قومه إلى آخر الدهر.\"" },
+            { question: "كيف وصف الكاهن شق الغلام الذي سيطرد الأحباش من اليمن؟", options: ["طويل جثّة، ضخم البنية، شديد البأس", "ملك من غسان، يشرب الخمر ويتّخذ الجواري", "غلام ليس بدنيّ ولا مدن، من بيت ذي يزن", "من نسل موسى، يخرج من بيت المقدس"], correctAnswerIndex: 2, explanation: "\"قال شق: غلام ليس بدني ولا مدن، يخرج عليهم من بيت ذي يزن، فلا يترك أحدًا منهم باليمن.\"" },
+            { question: "ما الذي حدث عند الاحتكام إلى النار بين الحبران وأصحاب الأوثان؟", options: ["احترق الحبران ومصاحفهما", "ابتلعت النار الحبران ومَن معهم", "أكلت النار الأوثان وأصحابها، وخرج الحبران سالمين", "انطفأت النار ولم تحكم لأحد"], correctAnswerIndex: 2, explanation: "\"فأكلت الأوثان وما قربوا معها، ومن حمل ذلك من رجال حمير، وخرج الحبران بمصاحفهما في أعناقهما تعرق جباههما لم تضرهما. فأصفقت عند ذلك حمير على دينه.\"" },
+            { question: "ما الذي فعله الحبران ببيت رئام الذي كانت تُكلم منه العرب؟", options: ["تركاه لأنه كان مكانًا مقدسًا", "بنيا عليه كنيسة لعبادة الله", "دمّراه واستخرجا منه شيطانًا في صورة كلب", "أعلنا أنه بيت لإبراهيم وأعادا العبادة فيه"], correctAnswerIndex: 2, explanation: "\"فقال الحبران لتبع: إنما هو شيطان يُفتنهم بذلك، فخلّ بيننا وبينه. فاستخرجا منه – فيما يزعم أهل اليمن – كلبًا أسود فذبحاه، ثم هدما ذلك البيت.\"" },
+            { question: "من أول من كسا الكعبة من ملوك العرب؟", options: ["إسماعيل بن إبراهيم عليه السلام", "تبع أسعد أبو كرب", "قصي بن كلاب", "عبد المطلب بن هاشم"], correctAnswerIndex: 1, explanation: "\"فأُري في المنام أن يكسو البيت، فكساه الخصف، ثم المعافر، ثم الملاء والوصائل. فكان تبع – فيما يزعمون – أول من كسا البيت. وأوصى به ولاته من جرهم، وأمرهم بتطهيره.\"" },
+            { question: "في وصيتها الشعرية لابنها، بمن استشهدت سُبيعة بنت الأحب لتذكيره بعظمة مكة وحرمة ظلمها؟", options: ["بإسماعيل بن إبراهيم عليه السلام", "بجدّها الذي سكن مكة", "بتبع الذي كسا الكعبة ومشى إليها حافيًا", "بعمر بن الخطاب الذي هدم الأصنام"], correctAnswerIndex: 2, explanation: "قالت سُبيعة بنت الأحب في قصيدتها تحذّر ابنها خالدًا من ظلم أحد في مكة:\n\"ولقد غزاها تُبّع\nفكسا بنيتها الحبير\nوأذلّ ربي ملكه\nفيها فأوفى بالنذور\nيمشي إليها حافيًا\nبفنائها ألفا بعير...\"" },
+            { question: "في وصية تُبّع لولاة الكعبة، ما المقصود بـ\"المئلاة\" التي أمرهم بألا يُقربوها من البيت الحرام؟", options: ["العصا التي تُضرَب بها الخدم", "خرقة الحيض الخاصة بالنساء", "جلد الغزال الذي تُكتب عليه التعاويذ", "القِدر التي يُطهى فيها لحم الأضاحي"], correctAnswerIndex: 1, explanation: "قال ابن هشام: \"وأوصى تبع البيت وولاة جرهم أن يطهّروه، وألا يُقرّبوه دمًا ولا ميتة ولا مئلاة.\" ثم شرح في الهامش: \"والمئلاة: خرقة الحيض، وجمعها: المآلي.\"" },
+            { question: "ما هو الخلاف الشهير الذي دار بين علماء النسب حول أصل قضاعة بن معد؟", options: ["هل هو من نسل بني إسرائيل أم من بني إسماعيل؟", "هل قضاعة اسم امرأة أم رجل؟", "هل قضاعة من ولد معد بن عدنان أم من ولد حمير بن قحطان؟", "هل قضاعة مات صغيرًا أم هاجر إلى الحبشة؟"], correctAnswerIndex: 2, explanation: "قال ابن إسحاق: \"فولد معد بن عدنان أربعة: نزار، قضاعة...\" ثم أورد الخلاف: \"قال ابن هشام: فقالت اليمن وقضاعة: قضاعة بن مالك بن حمير.\"" },
+            { question: "ما هو الخلاف الذي وقع في نسب النعمان بن المنذر، ملك الحيرة الشهير؟", options: ["هل هو من بني إسرائيل أم من بني عدنان؟", "هل هو من بقايا قنص بن معد أم من لخم بن عدي بن سبأ؟", "هل هو من قريش أم من الأنصار؟", "هل يرجع نسبه إلى الأزد أم إلى جرهم؟"], correctAnswerIndex: 1, explanation: "قال ابن إسحاق: \"وأما قنص بن معد... كان منهم النعمان بن المنذر ملك الحيرة.\" لكن يُقابل ذلك رأي آخر: \"فأما سائر العرب فيزعمون أنه كان رجلًا من لخم.\"" },
+            { question: "ما الذي جعل عمرو بن عامر الأزدي يتيقّن أن سد مأرب في طريقه إلى الانهيار، ويقرر مغادرة اليمن؟", options: ["عاصفة شديدة دمرت الزرع", "حلم رآه أن الأرض ستغرق", "رأى جرذًا يحفر في السد", "بلغه خبر عن زلزال في بلاد قحطان"], correctAnswerIndex: 2, explanation: "كان سبب خروج عمرو بن عامر من اليمن... أنه رأى جرذًا يحفر في سد مأرب الذي كان يحبس عليهم الماء... فعلم أنه لا بقاء للسد على ذلك." },
+            { question: "من هو أكبر أبناء إسماعيل عليه السلام بحسب ما ورد في الروايات التي تتحدث عن نسب العرب؟", options: ["قيذر", "نابتا", "ماشي", "دما"], correctAnswerIndex: 1, explanation: "قال ابن هشام، عن ابن إسحاق: \"ولد إسماعيل بن إبراهيم عليهما السلام اثني عشر رجلًا: نابتا، وكان أكبرهم، وقيذر، وأذبل...\"" },
+            { question: "ما هو القول الذي ذكره ابن هشام بخصوص أصل العرب؟ هل كلهم من بني إسماعيل عليه السلام؟", options: ["نعم، العرب كلهم من ولد إسماعيل دون استثناء", "لا، كل العرب من نسل قحطان فقط", "العرب من إسماعيل وقحطان، وبعض أهل اليمن يقولون إن قحطان من ولد إسماعيل", "العرب من إسماعيل، لكن قحطان من بني إسرائيل"], correctAnswerIndex: 2, explanation: "قال ابن هشام: \"فالعرب كلها من ولد إسماعيل وقحطان. وبعض أهل اليمن يقول: قحطان من ولد إسماعيل، ويقولون: إسماعيل أبو العرب كلها.\"" },
+            { question: "لماذا امتنع تُبّع عن إهلاك المدينة المنورة رغم عزمه على ذلك بعد مقتل ابنه فيها؟", options: ["لأن جيشه خاف من الأوس والخزرج", "لأنه رأى في المنام أن المدينة محرّمة عليه", "لأن حبرين من بني قريظة أخبراه أن نبيًا سيهاجر إليها", "لأنه لم يجد فيها ما يستحق القتال"], correctAnswerIndex: 2, explanation: "جاءه حبران من أحبار اليهود... فقالا له: أيها الملك، لا تفعل... هي مهاجر نبيّ، يخرج من هذا الحرم من قريش، في آخر الزمان، تكون داره وقراره." },
+            { question: "ما الذي أوصى به تُبّع ولاة الكعبة بعد أن طاف بها وكسَاها؟", options: ["أن يمنعوا الأجانب من دخولها", "أن لا يُقرّبوا إليها دمًا ولا ميتة ولا مئلاة", "أن يجعلوا فيها صنمًا كبيرًا يرمز له", "أن تبقى كسوتها ثابتة لا تُغيّر"], correctAnswerIndex: 1, explanation: "قال ابن هشام: \"وأوصى به – أي بالبيت – ولاته من جرهم، وأمرهم بتطهيره، وألا يُقرّبوه دمًا ولا ميتة ولا مئلاة، وهي المحايض.\"" },
+            { question: "ما الصلة التي جعلت النبي محمد ﷺ يوصي بأهل مصر خيرًا ويصفهم بأن لهم \"نسبًا وصهرًا\"؟", options: ["لأنهم كانوا أقرباء لأبي طالب", "لأن النبي ﷺ تعلم في الإسكندرية وهو صغير", "لأن أم إسماعيل منهم، ولأن مارية القبطية كانت من مصر", "لأنهم حاربوا مع المسلمين ضد الروم"], correctAnswerIndex: 2, explanation: "قال عمر مولى غُفرة: \"نسبهم أن أم إسماعيل النبي ﷺ منهم، وصهرهم أن رسول الله ﷺ تسرّر فيهم.\"" },
+            { question: "إلى أين انتقلت قبائل الأوس والخزرج وآل جفنة بعد خراب سد مأرب بسبب سيل العرم؟", options: ["الأوس والخزرج إلى مكة، وآل جفنة إلى العراق", "الأوس والخزرج إلى يثرب، وآل جفنة إلى الشام", "جميعهم انتقلوا إلى الطائف واستقروا فيها", "الأوس إلى اليمن، والخزرج إلى مصر، وآل جفنة إلى الحجاز"], correctAnswerIndex: 1, explanation: "ثم ارتحلوا عنهم فتفرّقوا في البلدان، فنزل آل جفنة بن عمرو بن عامر الشام، ونزلت الأوس والخزرج يثرب..." },
+            { question: "لماذا رأى النبي محمد ﷺ عمرو بن لُحَيّ الخزاعي يُعذّب في النار ويجرّ أمعاءه فيها؟", options: ["لأنه قاد حربًا على مكة", "لأنه سرق أموال الكعبة", "لأنه أول من غيّر دين إسماعيل، ونصَب الأوثان وأدخل الشرك إلى العرب", "لأنه منع الأذان في المسجد الحرام"], correctAnswerIndex: 2, explanation: "قال النبي ﷺ: \"رأيت عمرو بن لحي يجر قصبه (أي أمعاءه) في النار.\" ثم أوضح السبب: \"إنه كان أول من غير دين إسماعيل، فنصب الأوثان، وبحر البحيرة، وسيب السائبة، ووصل الوصيلة، وحمى الحامي.\"" },
+            { question: "ما المقصود بـ\"البحيرة\" التي ابتدعتها الجاهلية وأقرّها عمرو بن لُحَيّ، حتى ورد ذمّها في القرآن الكريم؟", options: ["ناقة تُمنع عن الركوب بعد أن تلد خمسًا", "ناقة تُشرب لبنها للضيوف فقط", "ناقة تُذبح عند الأصنام كل رجب", "ناقة يُباع ولدها في الجاهلية دون إذن أهلها"], correctAnswerIndex: 0, explanation: "قال النبي ﷺ عن عمرو بن لُحَيّ: \"فهو أول من بحر البحيرة، وسيّب السائبة...\" وفسّر العلماء \"البحيرة\" بأنها: \"الناقة إذا نتجت خمسة أبطن آخرها ذكر، شقّوا أذنها وحرّموها على الركوب أو الحمل...\" وقد أنزل الله في ذلك: ﴿ما جعل الله من بحيرة ولا سائبة ولا وصيلة ولا حام﴾ [المائدة: 103]" },
+            { question: "من أين جلب عمرو بن لحي صنم هُبل إلى مكة، ومتى بدأ أمر عبادة الأصنام في الحرم؟", options: ["من اليمن، بعد سيل العرم", "من البحرين، حين زار عبد القيس", "من الشام، حين قدم مآب من أرض البلقاء", "من الحبشة، بعد تحالفه مع ملوكهم"], correctAnswerIndex: 2, explanation: "قال ابن هشام: \"حدثني بعض أهل العلم: أن عمرو بن لُحَي خرج من مكة إلى الشام... فلما قدم مآب من أرض البلقاء... رآهم يعبدون الأصنام... فأعطوه صنمًا يُقال له: هُبَل، فقدم به مكة، فنصبه وأمر الناس بعبادته وتعظيمه.\"" },
+            { question: "كيف بدأت عبادة الحجارة في بني إسماعيل، بحسب ما يرويه أهل السيرة؟", options: ["بتقليد ما رآه العرب من أهل اليمن في تعظيم السدود", "بحملهم حجارة من الحرم للطواف بها عند سفرهم، ثم تطور ذلك إلى عبادة ما استحسنوه", "بعبادة الحجر الأسود وحده لأنه من الجنة", "بأمر من نبي مرسل في تلك الفترة بتعظيم الرموز"], correctAnswerIndex: 1, explanation: "قال ابن إسحاق: \"ويزعمون أن أول ما كانت عبادة الحجارة في بني إسماعيل، أنه كان لا يظعن من مكة ظاعن منهم إلا حمل معه حجرا من حجارة الحرم تعظيمًا للحرم... حتى سلخ ذلك بهم إلى أن كانوا يعبدون ما استحسنوا من الحجارة...\"" },
+            { question: "ما المقصود بقوله تعالى: ﴿وما يؤمن أكثرهم بالله إلا وهم مشركون﴾ في سياق عبادة العرب الجاهليين؟", options: ["أنهم لم يكونوا يؤمنون بالله أبدًا", "أنهم آمنوا بأن الله إلههم الوحيد دون غيره", "أنهم آمنوا بوجود الله، لكنهم جعلوا له شركاء من خلقه", "أنهم أشركوا فقط في بعض مناسك الحج وليس في العقيدة"], correctAnswerIndex: 2, explanation: "فكانت كنانة وقريش إذا أهلّوا قالوا: \"لبيك اللهم لبيك، لبيك لا شريك لك، إلا شريك هو لك، تملكه وما ملك.\" فيوحدونه بالتلبية، ثم يدخلون معه أصنامهم... يقول الله تبارك وتعالى لمحمد ﷺ: وما يؤمن أكثرهم بالله إلا وهم مشركون..." },
+            { question: "ما أسماء الأصنام التي عُبدت في قوم نوح، والتي ورد ذكرها في القرآن الكريم؟", options: ["اللات والعزى وهبل ومناة", "ود وسواع ويغوث ويعوق ونسر", "بعل وذو الشرى وأفعة وهبل", "سواع وهبل ومناة ويغوث"], correctAnswerIndex: 1, explanation: "قال الله تعالى في سورة نوح: ﴿وقالوا لا تذرن آلهتكم ولا تذرن وداً ولا سواعاً ولا يغوث ويعوق ونسراً﴾" },
+            { question: "ما هو الصنم الذي اتخذته قبيلة هُذيل بن مدركة وعبدته في منطقة \"رُهاط\"؟", options: ["هبل", "سواع", "ود", "يغوث"], correctAnswerIndex: 1, explanation: "قال ابن إسحاق: \"هذيل بن مدركة بن إلياس بن مضر، اتخذوا سواعًا، فكان لهم برُهاط.\"" },
+            { question: "ما هو الصنم الذي عبدته قبيلة كلب بن وبرة من قضاعة، وكان لهم في دومة الجندل؟", options: ["ود", "اللات", "يعوق", "مناة"], correctAnswerIndex: 0, explanation: "قال ابن إسحاق: \"كلب بن وبرة من قضاعة، اتخذوا ودا بدومة الجندل.\"" },
+            { question: "ما الذي يدل عليه قول كعب بن مالك في بيته الشعري:\n\"وننسى اللات والعزى وودًّا ونسلبها القلائد والشنوفا\"؟", options: ["الحنين إلى عبادة الأصنام", "إعلان التوبة والبراءة من عبادة الأصنام", "وصف مواسم الحج قبل الإسلام", "التشجيع على عبادة ود وسواع"], correctAnswerIndex: 1, explanation: "البيت في قول كعب بن مالك الأنصاري يدل على التخلي عن عبادة الأصنام، حيث قال: \"وننسى اللات والعزى وودًّا ونسلبها القلائد والشنوفا\" أي يتركون عبادة تلك الأوثان بعد الإيمان..." },
+            { question: "أي القبائل كانت تعبد الصنم المعروف باسم \"يغوث\"، وأين كان موضعه؟", options: ["هُذيل في رهاط", "كلب في دومة الجندل", "أنعم من طيّئ، وأهل جرش من مذحج", "قريش في جوار الكعبة"], correctAnswerIndex: 2, explanation: "قال ابن إسحاق: \"وأنعم من طيئ، وأهل جرش من مذحج، اتخذوا يغوث بجرش.\"" },
+            { question: "من هو الصنم الذي عبدته خيوان من همدان في اليمن، وماذا قال فيه الشاعر مالك بن نَمَط؟", options: ["سواع – \"سواعنا لا يُردّ\"", "ود – \"أودّ ودًا على البعد المقيم\"", "يعوق – \"ولا يُبري يعوق ولا يريش\"", "يغوث – \"يغوث فيهم حَمى الحِمى\""], correctAnswerIndex: 2, explanation: "قال ابن إسحاق: \"وخيوان بطن من همدان، اتخذوا يعوق بأرض همدان من أرض اليمن.\" وقال مالك بن نَمَط الهمداني فيه: \"يريش الله في الدنيا ويبري ولا يُبري يعوق ولا يريش\"" },
+            { question: "ما اسم الصنم الذي عبدته قبيلة ذو الكلاع من حمير، وأين كان موضعه؟", options: ["مناة – وكان بين مكة والمدينة", "نسر – وكان في أرض حمير", "يغوث – وكان في جرش", "يعوق – وكان في صنعاء"], correctAnswerIndex: 1, explanation: "قال ابن إسحاق: \"وذو الكلاع من حمير، اتخذوا نسرًا بأرض حمير.\" ونَسر هو أحد الأصنام الخمسة التي وردت في قول الله تعالى عن قوم نوح..." },
+            { question: "ما اسم الصنم الذي كانت تعبده قبيلة خولان، وكانوا يقسمون له من أنعامهم وزروعهم مع الله عز وجل؟", options: ["يعوق", "اللات", "عميانس", "سواع"], correctAnswerIndex: 2, explanation: "قال ابن إسحاق: \"وكان لخولان صنم يقال له عميانس بأرض خولان، يقسمون له من أنعامهم وحروثهم قسمًا بينه وبين الله بزعمهم...\"" },
+            { question: "كيف كان خولان يقسمون أنعامهم بين الله وصنمهم \"عميانس\"، بحسب ما ورد في تفسير الآية:\n﴿فقالوا هذا لله بزعمهم وهذا لشركائنا...﴾؟", options: ["يجعلون الأفضل لصنمهم، والأسوأ لله", "يقسمونها بالتساوي دائمًا", "ما دخل في حق الله من نصيب الصنم تركوه له، وما دخل في نصيب الله من نصيب الصنم ردوه إليه", "كانوا يعطون الله كل شيء ويتركون الصنم بلا نصيب"], correctAnswerIndex: 2, explanation: "\"فما دخل في حق عميانس من حق الله الذي سموه له تركوه له، وما دخل في حق الله من حق عميانس ردوه عليه، وفيهم أنزل الله: ﴿فقالوا هذا لله بزعمهم وهذا لشركائنا...﴾ [الأنعام: 136] ساء ما يحكمون.\"" },
+            { question: "ما الذي حدث لرجل من بني ملكان عند وقوفه بإبله على صنم \"سعد\"، وكيف عبّر عن ذلك في شعره؟", options: ["ذبح إبله عليه وتقبّلها الصنم فدعا له", "سجد للصنم فأغمي عليه من شدة الإيمان", "نفرت إبله من الصنم، فغضب ورماه بحجر، وأنشد شعرًا يذمّه", "دُهس تحت الإبل عند اقترابه من الصنم"], correctAnswerIndex: 2, explanation: "فأقبل رجل بإبل له ليقفها عليه، فلما رأته الإبل نفرت منه... فأخذ الرجل حجرًا فرمى به الصنم وقال: لا بارك الله فيك، نفّرت علي إبلي. ثم أنشد: \"أتينا إلى سعد ليجمع شملنا فشتتنا سعد فلا نحن من سعد...\"" },
+            { question: "ما اسم القبيلة التي كان لها صنم يُنسب إلى عمرو بن حممة، وما اسمه بحسب ما ورد في السيرة؟", options: ["كنانة – وسُمي \"سعد\"", "دوس – ولا يُذكر اسمه في النص", "خولان – وسُمي \"عميانس\"", "همدان – وسُمي \"يعوق\""], correctAnswerIndex: 1, explanation: "قال ابن إسحاق: \"وكان في دوس صنم لعمرو بن حممة الدوسي.\" ولم يُذكر اسم الصنم نفسه..." },
+            { question: "ما اسم الصنم الذي وضعته قريش داخل الكعبة على بئر، وكان يُعتبر من أعظم أصنامهم؟", options: ["مناة", "العُزّى", "هبل", "اللات"], correctAnswerIndex: 2, explanation: "قال ابن إسحاق: \"وكانت قريش قد اتخذت صنمًا على بئر في جوف الكعبة، يُقال له: هبل.\" وهُبل كان أعظم أصنام قريش..." },
+            { question: "ما أصل قصة إساف ونائلة، ولماذا مسخهما الله حجرين بحسب ما نُقل عن السيدة عائشة رضي الله عنها؟", options: ["لأنهما ذبحا قربانًا للأصنام داخل الكعبة", "لأنهما سرقا كنوز الكعبة", "لأنهما أحدثا فاحشة داخل الكعبة", "لأنهما طافا بالكعبة وهم على غير طهارة"], correctAnswerIndex: 2, explanation: "قال ابن إسحاق: \"وكان إساف ونائلة رجلًا وامرأة من جرهم... فوقع إساف على نائلة في الكعبة، فمسخهما الله حجرين.\" ونقلت عمرة بنت عبد الرحمن عن عائشة رضي الله عنها أنها قالت: \"ما زلنا نسمع أن إسافًا ونائلة كانا رجلًا وامرأة من جرهم، أحدثا في الكعبة، فمسخهما الله تعالى حجرين.\"" },
+            { question: "ما كان العرب يفعلونه مع أصنامهم قبل السفر وبعده، كما ورد في سيرة ابن هشام؟", options: ["يذبحون لها أولادهم ويتفاءلون بدمائهم", "يتمسحون بها عند الذهاب والإياب", "يُلبسونها الثياب الجديدة في كل موسم", "يطوفون بها وهم يحملون الحجارة فوق رؤوسهم"], correctAnswerIndex: 1, explanation: "قال ابن إسحاق: \"واتخذ أهل كل دار في دارهم صنمًا يعبدونه، فإذا أراد الرجل منهم سفرًا تمسح به حين يركب... وإذا قدم من سفره تمسح به...\"" },
+            { question: "أين كان موضع العُزّى، ومن كان يقوم على خدمتها وسدانتها؟", options: ["في مكة، وسدنتها بنو سهم من قريش", "في نخلة، وسدنتها بنو شيبان من سُلَيم", "في الطائف، وسدنتها بنو نُمير من هذيل", "في عرفات، وسدنتها بنو خزيمة من كنانة"], correctAnswerIndex: 1, explanation: "\"فكانت لقريش وبني كنانة العزى بنخلة، وكان سدنتها وحجابها بنو شيبان من سليم، حلفاء بني هاشم.\"" },
+            { question: "ما الذي كان يفعله العرب عند تقديم الهدي للعزى، بحسب ما ورد في النص؟", options: ["يرشّون دم الأنعام على جدران الصنم", "يقسّمون اللحم على من حضرهم عند المنحر", "يتركون الأنعام طليقة في الوادي دون ذبح", "يعلقون رؤوس الأنعام في الكعبة"], correctAnswerIndex: 1, explanation: "\"وكذلك كانوا يصنعون إذا نحروا هديا، قسموه في من حضرهم، والغبغب: المنحر ومهراق الدماء.\"" },
+            { question: "ما معنى السدنة كما ورد في النص، ومن أين جاء الاستشهاد؟", options: ["الذين ينحرون الأنعام عند الأصنام", "حراس الأصنام في المواسم", "الذين يقومون بأمر الكعبة", "صنف من الكهان في الجاهلية"], correctAnswerIndex: 2, explanation: "\"والسدنة: الذين يقومون بأمر الكعبة.\n\nقال رؤبة بن العجاج:\nبمحبس الهدى وبيت المسدن\"" },
+            { question: "أين كان موضع صنم اللات، ومن كان يتولى سدانته وخدمته؟", options: ["في نخلة – وسدنتها بنو شيبان من سُليم", "في الطائف – وسدنتها بنو معتب من ثقيف", "في المدينة – وسدنتها بنو النجار من الخزرج", "في مكة – وسدنتها بنو سهم من قريش"], correctAnswerIndex: 1, explanation: "قال ابن إسحاق: \"وكانت اللات لثقيف بالطائف، وكان سدنتها وحجابها بنو معتب من ثقيف.\"" },
+            { question: "أين كانت موضوعة مناة، وما القبائل التي كانت تعبدها قبل الإسلام؟", options: ["في الطائف – وكانت لقريش وثقيف", "في بطن مكة – وكانت لقريش وبني شيبان", "على ساحل البحر بقديد – وكانت للأوس والخزرج ومن دان بدينهم", "في نخلة – وكانت لبني نُمير وسُليم"], correctAnswerIndex: 2, explanation: "قال ابن إسحاق: \"وكانت مناة للأوس والخزرج، ومن دان بدينهم من أهل يثرب، على ساحل البحر من ناحية المشلل بقديد.\"" },
+            { question: "من الذي بعثه النبي ﷺ لهدم صنم مناة، بحسب الروايات المذكورة في سيرة ابن هشام؟", options: ["خالد بن الوليد", "أبو سفيان بن حرب، ويقال: علي بن أبي طالب", "عبد الله بن مسعود", "عمر بن الخطاب"], correctAnswerIndex: 1, explanation: "قال ابن هشام: \"فبعث رسول الله ﷺ إليها أبا سفيان بن حرب فهدمها، ويقال: علي بن أبي طالب.\"" },
+            { question: "ما اسم الصنم الذي كانت تعبده قبائل دوس وخثعم وبجيلة، وأين كان موضعه؟", options: ["إساف – في بطن مكة", "ذو الخلصة – في تبالة", "سواع – في رُهاط", "يعوق – في صنعاء"], correctAnswerIndex: 1, explanation: "قال ابن إسحاق: \"وكان ذو الخلصة لدوس وخثعم وبجيلة، ومن كان ببلادهم من العرب، بتبالة.\"" },
+            { question: "من الذي أرسله النبي ﷺ لهدم ذو الخلصة، صنم دوس وخثعم؟", options: ["علي بن أبي طالب", "جرير بن عبد الله البجلي", "أبو عبيدة بن الجراح", "خالد بن الوليد"], correctAnswerIndex: 1, explanation: "فبعث إليه رسول الله ﷺ جرير بن عبد الله البجلي فهدمه." },
+            { question: "ما اسم الصنم الذي كان لقبيلة طيئ، وأين كان موقعه؟ ومن الذي هدمه بأمر النبي ﷺ؟", options: ["مناة – في قديد – خالد بن الوليد", "ذو الخلصة – في تبالة – جرير بن عبد الله", "فلس – في جبلي طيئ (أجأ وسلمى) – علي بن أبي طالب", "نسر – في حمير – أبو موسى الأشعري"], correctAnswerIndex: 2, explanation: "قال ابن إسحاق: \"وكانت فلس لطيئ ومن يليها بجبلي طيئ، يعني سلمى وأجأ.\" وقال ابن هشام: \"بعث رسول الله ﷺ إليها علي بن أبي طالب فهدمها...\"" },
+            { question: "ما اسم البيت الذي كان تعظّمه حمير وأهل اليمن، وأين كان موقعه؟", options: ["ذو الكلاع – في مأرب", "رئام – في صنعاء", "يعوق – في الجند", "هبل – في نجران"], correctAnswerIndex: 1, explanation: "قال ابن إسحاق: \"وكان لحمير وأهل اليمن بيت بصنعاء، يُقال له: رئام.\"" },
+            { question: "من هو الرجل الذي يُقال إنه عاش أطول عمرًا في قبائل مضر، وكم كانت مدة عمره بحسب ما ورد في الرواية؟", options: ["زهير بن جناب – 200 سنة", "المستوغر – 330 سنة", "هرم بن سنان – 250 سنة", "زهير بن أبي سلمى – 150 سنة"], correctAnswerIndex: 1, explanation: "ويُقال: إن المستوغر عمر ثلاث مئة سنة وثلاثين سنة، وكان أطول مضر كلها عمرًا." },
+            { question: "ما اسم البيت أو الصنم الذي كان لبكر وتغلب وإياد، وأين كان موضعه بحسب ما ورد في شعر الجاهلية؟", options: ["اللات – في الطائف", "ذو الخلصة – في تبالة", "ذو الكعبات – في سنداد", "رئام – في صنعاء"], correctAnswerIndex: 2, explanation: "قال ابن إسحاق: \"وكان ذو الكعبات لبكر وتغلب ابني وائل وإياد بسنداد.\" وقد ورد ذكره في شعر الجاهليين..." },
+            { question: "ما المقصود بـ البحيرة في عرف الجاهلية، كما ذكر ابن إسحاق؟", options: ["شاةٌ تلد مرتين في بطن واحد", "ناقة يُشق أذنها بعد أن تلد عشر إناث متتابعات ولا تُستخدم بعد ذلك", "ناقة ينذرها الرجل عند مرضه فيسيبها", "فحل يُمنع من الركوب عليه إذا كثر نسله"], correctAnswerIndex: 1, explanation: "\"فأما البحيرة فهي بنت السائبة، والسائبة: الناقة إذا تابعت بين عشر إناث ليس بينهن ذكر... فما نتجت بعد ذلك من أنثى شقّوا أذنها وخُلّي سبيلها، فهي البحيرة.\"" },
+            { question: "ما المقصود بـ السائبة في عرف العرب الجاهلي، بحسب ابن هشام؟", options: ["ناقة من نسل خاص لا يُقرب لبنها", "بهيمة من بهائم الأنعام جعلها الرجل لآلهته وفاءً لنذر", "شاة تلد مع ذكر في بطن واحد", "بقرة تُذبح قربانًا للملوك"], correctAnswerIndex: 1, explanation: "\"والسائبة: التي ينذر الرجل أن يُسيّبها إن بَرئ من مرضه، أو إن أصاب أمرًا يطلبه... فإذا أساب ناقة من إبله أو جملًا لآلهتهم، سابت فلا يُنتفع بها.\"" },
+            { question: "ماذا ورد في القرآن الكريم بشأن البحيرة والسائبة والوصيلة والحامي؟", options: ["أن الله أقرّها في الجاهلية ولم يُلغها", "أنها طقوس شركية مفروضة من الله", "أن العرب كانوا يفترون بها على الله، وهي باطلة", "أن العرب أكلوا منها دون تمييز"], correctAnswerIndex: 2, explanation: "فأنزل الله: ﴿ما جعل الله من بحيرة ولا سائبة ولا وصيلة ولا حام ولكن الذين كفروا يفترون على الله الكذب﴾ [الأنعام: 138]" },
+            { question: "ما الاختلاف الذي أشار إليه ابن هشام في تعريف الحامي عن باقي الأنواع الأخرى؟", options: ["قال إن الحامي لا يُعتبر طقسًا شركيًا", "قال إن تعريف الحامي ثابت وصحيح عند العرب، بخلاف غيره", "قال إن الحامي كان يُركب بخلاف السائبة", "قال إن الحامي لم يكن معروفًا عند قريش"], correctAnswerIndex: 1, explanation: "قال ابن هشام: \"وهذا كله عند العرب على غير هذا إلا الحامي، فإنه عندهم على ما قال ابن إسحاق.\"" },
+            { question: "من هم أبناء هاشم الذكور الأربعة، كما ورد في النص؟", options: ["عبد المطلب، العباس، حمزة، نضر", "عبد المطلب، أسد، أبو صيفي، نضلة", "عبد المطلب، عبد شمس، نوفل، نضر", "عبد المطلب، الحارث، أسد، عامر"], correctAnswerIndex: 1, explanation: "فولد هاشم بن عبد مناف أربعة نفر: عبد المطلب، أسد، أبو صيفي، نضلة." },
+            { question: "من هي أم عبد المطلب، وما نسبها كما ورد في النص؟", options: ["آمنة بنت وهب الزهرية", "هند بنت عمرو بن ثعلبة الخزرجية", "سلمى بنت عمرو بن زيد بن لبيد بن حرام النجارية", "قيلة بنت عامر بن مالك الخزاعية"], correctAnswerIndex: 2, explanation: "فأم عبد المطلب ورقية: سلمى بنت عمرو بن زيد بن لبيد بن حرام بن خداش بن عامر بن غنم بن عدي بن النجار." },
+            { question: "من هي أم نضلة والشفاء، وما أصلها القبلي بحسب النص؟", options: ["هند بنت عمرو الخزرجية", "امرأة من قضاعة", "واقدة بنت أبي عدي المازنية", "قيلة بنت عامر الخزاعية"], correctAnswerIndex: 1, explanation: "وأم نضلة والشفاء: امرأة من قضاعة." },
+        { question: "كم عدد أولاد عبد المطلب بن هاشم، من الذكور والإناث؟", options: ["10 ذكور و5 إناث", "12 ذكرًا و6 إناث", "10 ذكور و6 إناث", "9 ذكور و4 إناث"], correctAnswerIndex: 2, explanation: "فولد عبد المطلب بن هاشم عشرة نفر وست نسوة: العباس، حمزة، عبد الله، أبو طالب، الزبير، الحارث، حجل، المقوم، ضرار، أبو لهب، وصفية، أم حكيم البيضاء، عاتكة، أميمة، أروى، برة." },
+{ question: "من هي أم عبد الله (والد النبي ﷺ) وأبي طالب والزبير وجميع النساء ما عدا صفية؟", options: ["هالة بنت وهيب", "نكيلة بنت جناب", "لبنى بنت هاجر", "فاطمة بنت عمرو المخزومية"], correctAnswerIndex: 3, explanation: "وأم عبد الله، وأبي طالب، والزبير، وجميع النساء غير صفية: فاطمة بنت عمرو بن عائذ بن عمران بن مخزوم..." },
+{ question: "من هي أم حمزة وصفية، وما نسبها؟", options: ["نكيلة بنت جناب، من ربيعة", "فاطمة بنت عمرو، من بني مخزوم", "لبنى بنت هاجر، من خزاعة", "هالة بنت وهيب، من بني زهرة"], correctAnswerIndex: 3, explanation: "وأم حمزة والمقوم وحجل، وصفية: هالة بنت وهيب بن عبد مناة بن زهرة بن كلاب..." },
+{ question: "من هي أم النبي محمد ﷺ، وما نسبها؟", options: ["فاطمة بنت عمرو المخزومية", "آمنة بنت وهب بن عبد مناف بن زهرة", "هالة بنت وهيب بن عبد مناة", "برة بنت عبد العزى بن عثمان"], correctAnswerIndex: 1, explanation: "وأمه: آمنة بنت وهب بن عبد مناف بن زهرة بن كلاب..." },
+{ question: "من هي جدة النبي ﷺ لأمه (أم آمنة بنت وهب)؟", options: ["برة بنت عوف بن عبيد", "أم حبيب بنت أسد", "برة بنت عبد العزى بن عثمان", "صخرة بنت عبد بن عمران"], correctAnswerIndex: 2, explanation: "وأمها: برة بنت عبد العزى بن عثمان بن عبد الدار بن قصي..." },
+{ question: "بأي عبارة ختم ابن هشام هذا النسب الشريف لتعريف النبي ﷺ ومكانته؟", options: ["هو نبي الله وخاتم النبيين من قريش", "هو صاحب المعجزات والنسب الكريم", "فرسول الله أشرف ولد آدم حسبًا وأفضلهم نسبًا", "هو خير من وطئ الثرى من أبناء بني زهرة"], correctAnswerIndex: 2, explanation: "قال ابن هشام: فرسول الله ﷺ أشرف ولد آدم حسبًا، وأفضلهم نسبًا من قبل أبيه وأمه." },        
+        { question: "أين كانت زمزم مدفونة قبل أن يحفرها عبد المطلب، وما الذي كان بجانبها آنذاك؟", options: ["تحت أستار الكعبة بين بابها والمقام", "بين صنمي قريش: إساف ونائلة، عند منحر قريش", "خلف جبل الصفا، بجانب الصخرة السوداء", "بجانب حِجر إسماعيل عند مدخل دار الندوة"], correctAnswerIndex: 1, explanation: "وهي دفن بين صنمي قريش: إساف ونائلة، عند منحر قريش." },
+{ question: "كيف ظهرت زمزم أول مرة، بحسب القصة التي نقلها ابن إسحاق؟", options: ["ضرب إبراهيم الأرض بعصاه فنبع الماء", "نزلت ملائكة وسقت إسماعيل", "همز جبريل عليه السلام الأرض بعقبه، فنبع الماء", "وجدت هاجر بئراً كانت مدفونة في الجبل"], correctAnswerIndex: 2, explanation: "فبعث الله تعالى جبريل عليه السلام، فهمز له بعقبه في الأرض، فظهر الماء..." },
+{ question: "من الذي رأى رؤيا تأمره بحفر زمزم بعد أن دُفنت، ومن الذي دفنها أصلاً؟", options: ["عبد الله بن عبد المطلب – ودفنتها خزاعة", "عبد المطلب بن هاشم – ودفنتها جرهم", "قصي بن كلاب – ودفنتها ثقيف", "أبو طالب – ودفنتها بني عامر"], correctAnswerIndex: 1, explanation: "بينما عبد المطلب بن هاشم نائم في الحجر، أتي فأُمر بحفر زمزم... وكانت جرهم دفنتها حين ظعنوا من مكة." },
+ { question: "من الذي تولّى ولاية البيت الحرام بعد وفاة النبي إسماعيل عليه السلام؟", options: ["إبراهيم عليه السلام", "نابت بن إسماعيل، ثم مضاض بن عمرو الجرهمي", "عبد المطلب بن هاشم", "خزاعة بن عمرو بن لحي"], correctAnswerIndex: 1, explanation: "لما توفي إسماعيل بن إبراهيم ولي البيت بعده ابنه نابت بن إسماعيل ما شاء الله أن يليه، ثم ولي البيت بعده مضاض بن عمرو الجرهمي." },
+{ question: "من الذي دفن بئر زمزم بعد إسماعيل عليه السلام، كما ورد في سياق الرواية؟", options: ["نابت بن إسماعيل", "مضاض بن عمرو", "جرهم", "خزاعة"], correctAnswerIndex: 2, explanation: "وكان من حديث جرهم، ودفنهم زمزم، وخروجهم من مكة..." },       
+  { question: "من هما القبيلتان اليمنيتان اللتان سكنتا مكة قديمًا قبل الإسلام، وكانتا أبناء عمومة، ونشأ بينهما صراع؟", options: ["جرهم وخزاعة", "جرهم وقطوراء", "خزاعة وكنانة", "قطوراء وثقيف"], correctAnswerIndex: 1, explanation: "وجرهم وقطوراء يومئذ أهل مكة، وهما ابنا عم... وكانتا ظعنين من اليمن... فرأيا بلدا ذا ماء وشجر فنزلا به." },
+{ question: "من زعيم جرهم ومن زعيم قطوراء حين وقعت المعركة الأولى بينهما في مكة، وما كانت نتيجة القتال؟", options: ["خزاعة وكنانة – وانتهى بتقاسم مكة", "إبراهيم وإسماعيل – وانتهى بصلح", "مضاض بن عمرو والسميدع – وانتصر مضاض وقتل السميدع", "قصي بن كلاب وعمرو بن لحي – وخرج قصي منتصرًا"], correctAnswerIndex: 2, explanation: "فخرج مضاض بن عمرو من قعيقعان... وخرج السميدع من أجياد... فالتقوا بفاضح واقتتلوا قتالًا شديدًا، فقتل السميدع، وفضحت قطوراء." },
+{ question: "ما سبب تسمية الأماكن: قعيقعان، أجياد، فاضح، المطابخ، حسب رواية ابن إسحاق؟", options: ["كلها تعود لجبال وشعاب كانت مسكونة في الجاهلية", "سميت بسبب ما وقع فيها من معارك وخروج الجيوش والطبخ الجماعي", "كانت منازل للنبي ﷺ في مكة", "سميت بأسماء آلهة كانت تُعبد هناك"], correctAnswerIndex: 1, explanation: "قعيقعان: لأن مضاض خرج منه في كتيبته، وكان معها السلاح يقرقع. أجياد: لأن السميدع خرج منه بخيله الجياد. فاضح: لأنه وقع فيه القتال وقتل السميدع. المطابخ: لأنهم نحروا فيها وطبخوا بعد الصلح." },      
+  { question: "ما السبب الذي أدى إلى سقوط حكم جرهم وطردهم من مكة؟", options: ["لأنهم لم يكونوا من ذرية إسماعيل", "لأنهم خالفوا تعاليم إبراهيم في العبادة", "لأنهم بغَوا، وأكلوا مال الكعبة وظلموا الداخلين", "لأنهم فشلوا في الدفاع عن مكة من الغزاة"], correctAnswerIndex: 2, explanation: "ثم إن جرهم بغوا بمكة، واستحلوا خلالًا من الحرمة، فظلموا من دخلها... وأكلوا مال الكعبة الذي يُهدى لها، فَرَق أمرهم." },
+{ question: "من القبائل التي تحالفت لإخراج جرهم من مكة بعد بغيهم؟", options: ["كنانة وغطفان", "غبشان من خزاعة، وبنو بكر من كنانة", "ثقيف وأسد", "بنو نضر وعبد الدار"], correctAnswerIndex: 1, explanation: "فلما رأت بنو بكر بن عبد مناة بن كنانة، وغبشان من خزاعة ذلك، أجمعوا لحربهم وإخراجهم من مكة... فغلبتهم بنو بكر وغبشان فنفوهم من مكة." },      
+   { question: "كثيرًا ما تُذكر كلمتا 'مكة' و'بكة'، فما المقصود بـ 'بكة' لغةً، وأين تقع داخل مكة؟", options: ["اسم قديم لمكة كلها", "وادٍ في اليمن جاء منه سكان مكة", "اسم لبطن مكة حيث يزدحم الناس حول الكعبة", "اسم الحِجر خلف الكعبة"], correctAnswerIndex: 2, explanation: "أن بكة اسم لبطن مكة، لأنهم يتباكون فيها، أي يزدحمون. وهو موضع البيت والمسجد." },
+{ question: "من هو الزعيم الجرهمي الذي خرج من مكة بعد سقوط مُلك جرهم، وما الذي فعله قبل رحيله؟", options: ["نابت بن إسماعيل – بنى الكعبة من جديد", "قصي بن كلاب – استولى على الكعبة", "عمرو بن الحارث بن مضاض – دفن غزالي الكعبة وحجر الركن في زمزم", "السميدع من قطوراء – نهب الكعبة ورحل"], correctAnswerIndex: 2, explanation: "فخرج عمرو بن الحارث بن مضاض الجرهمي بغزالي الكعبة وحجر الركن، فدفنها في زمزم، وانطلق هو ومن معه من جرهم إلى اليمن." },
+{ question: "ماذا عبّر عمرو بن الحارث في شعره بعد طرد جرهم من مكة؟", options: ["شماتة بالأقوام الذين أخذوا منهم البيت", "وصف لمعارك جرهم وذكر بطولاتهم", "رثاء لمكة ولبيت الله، وتحسّر على فقد الشرف والسيادة", "فخر بأن جرهم تركوا البيت طوعًا ولم يُهزموا"], correctAnswerIndex: 2, explanation: "كأن لم يكن بين الحجون إلى الصفا أنيس ولم يسمر بمكة سامر... فسحت دموع العين تبكي لبلدة بها حرم أمن وفيها المشاعر" },     
+  { question: "من هي القبيلة التي تولّت ولاية الكعبة بعد طرد جرهم، ومن الذي تولّاها من رجالهم؟", options: ["كنانة – عمرو بن كلاب", "قريش – قصي بن كلاب", "خزاعة – عمرو بن الحارث الغبشاني", "ثقيف – حليل بن سلول"], correctAnswerIndex: 2, explanation: "ثم إن غبشان من خزاعة وليت البيت دون بني بكر... وكان الذي يليه منهم عمرو بن الحارث الغبشاني." },
+{ question: "من هو الرجل الذي تزوّج بنت آخر ولاة الكعبة من خزاعة، وأصبح له بذلك صلة نسب بالحكم؟", options: ["عبد المطلب بن هاشم", "قصي بن كلاب", "عبد مناف بن قصي", "الزبير بن العوام"], correctAnswerIndex: 1, explanation: "حتى كان آخرهم حليل بن حبشية الخزاعي... تزوج قصي بن كلاب حبى بنت حليل." },
+{ question: "من هو الرجل الذي تزوّج بنت حليل بن حبشية، آخر زعماء خزاعة على الكعبة، وأنجب منها أربعة أبناء أصبح لهم شأن في مكة؟", options: ["عبد المطلب بن هاشم", "عبد شمس بن عبد مناف", "قصي بن كلاب", "نابت بن إسماعيل"], correctAnswerIndex: 2, explanation: "خطب قصي بن كلاب إلى حليل بن حبشية ابنته حبى... فولدت له: عبد الدار، وعبد مناف، وعبد العزى، وعبدا.", hint: "كان هذا الزواج سببًا في ارتباط نسبي وسياسي بمكة، وقد نتج عنه أبناء أصبح لهم دور في تاريخ قريش." }
+        ];
+        const motivationalMessages = {
+            correct: ["إجابة رائعة!", "أحسنت!", "ما شاء الله، معلومة دقيقة!", "صحيح، استمر على هذا النحو!", "ممتاز!"],
+            incorrect: ["لا بأس، كلنا نتعلم!", "معلومة جديدة لك!", "المحاولة القادمة أفضل بإذن الله.", "ليست الإجابة الصحيحة، ولكنك اكتسبت معرفة."]
+        };
+
+        // --- DOM Elements ---
+        const startScreenEl = document.getElementById('start-screen');
+        const startBtnEl = document.getElementById('start-btn');
+        const portalHomeEl = document.getElementById('portal-home');
+        const quizContentEl = document.getElementById('quiz-content');
+        const questionTextEl = document.getElementById('question-text');
+        const optionsContainerEl = document.getElementById('options-container');
+        const feedbackAreaEl = document.getElementById('feedback-area');
+        const explanationTextEl = document.getElementById('explanation-text');
+        const motivationTextEl = document.getElementById('motivation-text');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const backToHomeBtn = document.getElementById('back-to-home-btn');
+        const backToHomeBtnQuiz = document.getElementById('back-to-home-btn-quiz');
+        const resultsScreenEl = document.getElementById('results-screen');
+        const finalScoreTextEl = document.getElementById('final-score-text');
+        const finalMotivationTextEl = document.getElementById('final-motivation-text');
+        const questionAreaEl = document.getElementById('question-area');
+        const scoreDisplayEl = document.getElementById('score-display');
+        const progressBarEl = document.getElementById('progress-bar');
+        const headerEl = document.getElementById('header');
+        const questionCounterEl = document.getElementById('question-counter');
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        const backgroundMusicEl = document.getElementById('background-music');
+        const correctAnswerMusicEl = document.getElementById('correct-answer-music');
+        const incorrectAnswerMusicEl = document.getElementById('incorrect-answer-music');
+        const ttsPlayer = document.getElementById('tts-audio-player');
+        const muteBtnEl = document.getElementById('mute-btn');
+        const volumeOnIcon = document.getElementById('volume-on-icon');
+        const volumeOffIcon = document.getElementById('volume-off-icon');
+        const scoreCircle = document.getElementById('score-circle');
+        const startSiraGameBtn = document.getElementById('start-sira-game');
+        const jumpToQuestionBtn = document.getElementById('jump-to-question-btn');
+        const jumpModal = document.getElementById('jump-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const questionGrid = document.getElementById('question-grid');
+        const hintBtn = document.getElementById('hint-btn');
+        const hintModal = document.getElementById('hint-modal');
+        const closeHintModalBtn = document.getElementById('close-hint-modal-btn');
+        const hintText = document.getElementById('hint-text');
+        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        const leaderboardModal = document.getElementById('leaderboard-modal');
+        const closeLeaderboardModalBtn = document.getElementById('close-leaderboard-modal-btn');
+        const leaderboardContent = document.getElementById('leaderboard-content');
+        const userInfoEl = document.getElementById('user-info');
+
+        // --- Game State ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answered = false;
+        let isGloballyMuted = false;
+        const API_KEY = 'AIzaSyCtlm6TyzzvazIbwgosMGC70AcFL2621tM';
+        let db, auth, userId;
+
+        // --- Confetti Effect ---
+        let particles = [];
+        function triggerConfetti() {
+            const particleCount = 150;
+            const colors = ['#f6e05e', '#34d399', '#facc15', '#fb7185', '#a78bfa'];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    radius: Math.random() * 3 + 2,
+                    vx: Math.random() * 10 - 5,
+                    vy: Math.random() * -15 - 5,
+                    alpha: 1,
+                    gravity: 0.3
+                });
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, index) => {
+                p.vy += p.gravity;
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.01;
+                if (p.alpha <= 0) {
+                    particles.splice(index, 1);
+                } else {
+                    ctx.globalAlpha = p.alpha;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2, false);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            });
+            if (particles.length > 0) {
+                requestAnimationFrame(animateConfetti);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        // --- Audio & Speech Control ---
+        function stopAllAudio() {
+            backgroundMusicEl.pause();
+            correctAnswerMusicEl.pause();
+            incorrectAnswerMusicEl.pause();
+            ttsPlayer.pause();
+        }
+
+        async function playSound(soundElement, shouldLoop = false) {
+            if (isGloballyMuted) return;
+            try {
+                soundElement.loop = shouldLoop;
+                soundElement.currentTime = 0;
+                await soundElement.play();
+            } catch (error) {
+                console.error(`Error playing sound: ${soundElement.id}`, error);
+            }
+        }
+        
+        async function speak(text) {
+            if (isGloballyMuted) return;
+            
+            const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${API_KEY}`;
+            const payload = {
+                input: { text: text },
+                voice: { languageCode: 'ar-XA', name: 'ar-XA-Wavenet-A', ssmlGender: 'FEMALE' },
+                audioConfig: { audioEncoding: 'MP3' }
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.audioContent) {
+                    return new Promise(resolve => {
+                        ttsPlayer.src = `data:audio/mp3;base64,${data.audioContent}`;
+                        ttsPlayer.onended = resolve;
+                        ttsPlayer.play();
+                    });
+                }
+            } catch (error) {
+                console.error('Google TTS API Error:', error);
+            }
+        }
+        
+        async function speakSequence(texts) {
+            if (isGloballyMuted) return;
+            stopAllAudio(); // Stop background music before speaking
+            for (const text of texts) {
+                if (isGloballyMuted) break; 
+                await speak(text);
+            }
+        }
+        
+        // --- Game Functions ---
+        function startQuiz() {
+            portalHomeEl.classList.add('fade-out');
+             setTimeout(() => {
+                portalHomeEl.classList.add('hidden');
+                quizContentEl.classList.remove('hidden');
+                quizContentEl.classList.add('fade-in');
+            }, 500);
+
+            currentQuestionIndex = 0;
+            score = 0;
+            answered = false;
+            resultsScreenEl.classList.add('hidden');
+            resultsScreenEl.classList.remove('fade-in');
+            questionAreaEl.classList.remove('hidden');
+            headerEl.classList.remove('hidden');
+            updateScoreDisplay();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            stopAllAudio();
+            
+            questionAreaEl.classList.remove('fade-in');
+            questionAreaEl.classList.add('fade-out');
+
+            setTimeout(async () => {
+                answered = false;
+                feedbackAreaEl.classList.add('hidden');
+                nextBtn.classList.add('hidden');
+                const currentQuestion = quizData[currentQuestionIndex];
+                questionTextEl.textContent = currentQuestion.question;
+                
+                if (currentQuestion.hint) {
+                    hintBtn.classList.remove('hidden');
+                } else {
+                    hintBtn.classList.add('hidden');
+                }
+
+                optionsContainerEl.innerHTML = '';
+                currentQuestion.options.forEach((option, index) => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('option-btn', 'w-full', 'p-4', 'text-lg', 'rounded-lg', 'font-semibold');
+                    button.dataset.index = index;
+                    button.addEventListener('click', selectAnswer);
+                    optionsContainerEl.appendChild(button);
+                });
+                updateProgressBar();
+                questionCounterEl.textContent = `السؤال ${currentQuestionIndex + 1} / ${quizData.length}`;
+                questionAreaEl.classList.remove('fade-out');
+                questionAreaEl.classList.add('fade-in');
+
+                // Prepare and read the sequence of texts
+                const textsToSpeak = [`السؤال ${currentQuestionIndex + 1}. ${currentQuestion.question}`];
+                const optionPrefixes = ['أ', 'ب', 'ج', 'د'];
+                currentQuestion.options.forEach((opt, i) => {
+                    textsToSpeak.push(`الخيار ${optionPrefixes[i]}. ${opt}`);
+                });
+
+                await speakSequence(textsToSpeak);
+                
+                if (!answered) {
+                   playSound(backgroundMusicEl, true);
+                }
+
+            }, 500);
+        }
+
+        async function selectAnswer(e) {
+            if (answered) return;
+            answered = true;
+
+            stopAllAudio();
+
+            const selectedButton = e.target;
+            const selectedAnswerIndex = parseInt(selectedButton.dataset.index);
+            const currentQuestion = quizData[currentQuestionIndex];
+            const correctAnserIndex = currentQuestion.correctAnswerIndex;
+            
+            optionsContainerEl.querySelectorAll('.option-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+
+            let answerMusic;
+
+            if (selectedAnswerIndex === correctAnserIndex) {
+                score++;
+                selectedButton.classList.add('correct');
+                motivationTextEl.textContent = motivationalMessages.correct[Math.floor(Math.random() * motivationalMessages.correct.length)];
+                motivationTextEl.className = 'text-center text-xl font-semibold mb-4 text-emerald-400';
+                answerMusic = correctAnswerMusicEl;
+                triggerConfetti();
+            } else {
+                selectedButton.classList.add('incorrect');
+                optionsContainerEl.querySelectorAll('.option-btn')[correctAnserIndex].classList.add('correct');
+                motivationTextEl.textContent = motivationalMessages.incorrect[Math.floor(Math.random() * motivationalMessages.incorrect.length)];
+                motivationTextEl.className = 'text-center text-xl font-semibold mb-4 text-rose-400';
+                answerMusic = incorrectAnswerMusicEl;
+            }
+
+            explanationTextEl.innerText = currentQuestion.explanation;
+            feedbackAreaEl.classList.remove('hidden');
+            feedbackAreaEl.classList.add('fade-in');
+            nextBtn.classList.remove('hidden');
+            updateScoreDisplay();
+            
+            await playSound(answerMusic);
+        }
+
+        function showNextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        async function showResults() {
+            stopAllAudio();
+            await saveScore(score);
+            questionAreaEl.classList.add('fade-out');
+            headerEl.classList.add('fade-out');
+            setTimeout(() => {
+                questionAreaEl.classList.add('hidden');
+                headerEl.classList.add('hidden');
+                feedbackAreaEl.classList.add('hidden');
+                nextBtn.classList.add('hidden');
+                resultsScreenEl.classList.remove('hidden');
+                resultsScreenEl.classList.add('fade-in');
+                
+                const percentage = (score / quizData.length);
+                finalScoreTextEl.textContent = `${score}/${quizData.length}`;
+                
+                const circumference = 2 * Math.PI * 45; // 2 * pi * r
+                const offset = circumference - (percentage * circumference);
+                scoreCircle.style.strokeDashoffset = offset;
+
+                let motivation = "";
+                if (percentage >= 0.8) {
+                    motivation = "ما شاء الله! معلوماتك في السيرة ممتازة!";
+                } else if (percentage >= 0.5) {
+                    motivation = "جيد جداً! استمر في التعلم والمراجعة.";
+                } else {
+                    motivation = "بداية موفقة! كل رحلة معرفية تبدأ بخطوة.";
+                }
+                finalMotivationTextEl.textContent = motivation;
+                triggerConfetti();
+            }, 500);
+        }
+
+        function updateScoreDisplay() {
+            scoreDisplayEl.textContent = `النتيجة: ${score}`;
+        }
+
+        function updateProgressBar() {
+            const progressPercentage = ((currentQuestionIndex + 1) / quizData.length) * 100;
+            progressBarEl.style.width = `${progressPercentage}%`;
+        }
+        
+        function backToHome() {
+            stopAllAudio();
+            quizContentEl.classList.add('fade-out');
+            setTimeout(() => {
+                 quizContentEl.classList.add('hidden');
+                 portalHomeEl.classList.remove('hidden', 'fade-out');
+                 portalHomeEl.classList.add('fade-in');
+            }, 500);
+        }
+
+        function populateJumpModal() {
+            questionGrid.innerHTML = '';
+            for (let i = 0; i < quizData.length; i++) {
+                const qNum = i + 1;
+                const btn = document.createElement('button');
+                btn.textContent = qNum;
+                btn.dataset.questionIndex = i;
+                btn.className = 'question-jump-btn w-12 h-12 rounded-lg font-bold flex items-center justify-center text-white';
+                questionGrid.appendChild(btn);
+            }
+        }
+
+        // --- Firebase Functions ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sira-quiz-app-default';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        async function initializeFirebase() {
+            try {
+                if (!firebaseConfig.apiKey) {
+                    console.log("Firebase config not found. Running in offline mode.");
+                    userInfoEl.textContent = "وضع عدم الاتصال";
+                    return;
+                }
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userInfoEl.textContent = `معرف المستخدم: ${userId.substring(0, 8)}...`;
+                        setupLeaderboardListener();
+                    } else {
+                        userInfoEl.textContent = 'لم يتم تسجيل الدخول';
+                    }
+                });
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                userInfoEl.textContent = "خطأ في الاتصال";
+            }
+        }
+
+        async function saveScore(finalScore) {
+            if (!userId || !db) return;
+            try {
+                const userScoreRef = doc(db, `artifacts/${appId}/public/data/leaderboard`, userId);
+                const docSnap = await getDoc(userScoreRef);
+                
+                if (docSnap.exists() && docSnap.data().score >= finalScore) {
+                    console.log("New score is not higher than the existing one. Not updating.");
+                    return;
+                }
+
+                await setDoc(userScoreRef, {
+                    userId: userId,
+                    score: finalScore,
+                    timestamp: new Date()
+                });
+                console.log("Score saved/updated successfully!");
+            } catch (error) {
+                console.error("Error saving score: ", error);
+            }
+        }
+
+        function setupLeaderboardListener() {
+            if (!db) return;
+            const leaderboardRef = collection(db, `artifacts/${appId}/public/data/leaderboard`);
+            const q = query(leaderboardRef);
+
+            onSnapshot(q, (snapshot) => {
+                const scores = [];
+                snapshot.forEach((doc) => {
+                    scores.push(doc.data());
+                });
+                scores.sort((a, b) => b.score - a.score);
+                updateLeaderboardUI(scores.slice(0, 10)); // Display top 10
+            });
+        }
+
+        function updateLeaderboardUI(scores) {
+            leaderboardContent.innerHTML = '';
+            if (scores.length === 0) {
+                leaderboardContent.innerHTML = '<p class="text-slate-400 text-center">لا توجد نتائج بعد. كن أول من يلعب!</p>';
+                return;
+            }
+            scores.forEach((data, index) => {
+                const isCurrentUser = data.userId === userId;
+                const rank = index + 1;
+                const entry = document.createElement('div');
+                entry.className = `flex justify-between items-center p-3 rounded-lg ${isCurrentUser ? 'bg-yellow-400/20' : 'bg-white/5'}`;
+                entry.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-lg ${isCurrentUser ? 'text-yellow-300' : 'text-slate-300'}">${rank}</span>
+                        <span class="truncate text-sm ${isCurrentUser ? 'text-white' : 'text-slate-400'}">...${data.userId.substring(0, 8)}</span>
+                    </div>
+                    <span class="font-bold text-lg ${isCurrentUser ? 'text-yellow-300' : 'text-slate-300'}">${data.score}</span>
+                `;
+                leaderboardContent.appendChild(entry);
+            });
+        }
+
+
+        // --- Event Listeners ---
+        startSiraGameBtn.addEventListener('click', async () => {
+            backgroundMusicEl.volume = 0.2;
+            correctAnswerMusicEl.volume = 0.5;
+            incorrectAnswerMusicEl.volume = 0.5;
+            
+            isGloballyMuted = false;
+            volumeOnIcon.classList.remove('hidden');
+            volumeOffIcon.classList.add('hidden');
+            
+            startQuiz();
+        });
+
+        nextBtn.addEventListener('click', showNextQuestion);
+        
+        restartBtn.addEventListener('click', startQuiz);
+        backToHomeBtn.addEventListener('click', backToHome);
+        backToHomeBtnQuiz.addEventListener('click', backToHome);
+
+        muteBtnEl.addEventListener('click', () => {
+            isGloballyMuted = !isGloballyMuted;
+            if (isGloballyMuted) {
+                stopAllAudio();
+            } else {
+                playSound(backgroundMusicEl, true);
+            }
+            volumeOnIcon.classList.toggle('hidden', isGloballyMuted);
+            volumeOffIcon.classList.toggle('hidden', !isGloballyMuted);
+        });
+
+        jumpToQuestionBtn.addEventListener('click', () => {
+            jumpModal.classList.remove('hidden');
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            jumpModal.classList.add('hidden');
+        });
+
+        jumpModal.addEventListener('click', (e) => {
+            if (e.target === jumpModal) {
+                jumpModal.classList.add('hidden');
+            }
+        });
+
+        questionGrid.addEventListener('click', (e) => {
+            const target = e.target.closest('.question-jump-btn');
+            if (!target) return;
+
+            const index = parseInt(target.dataset.questionIndex);
+            if (!isNaN(index)) {
+                currentQuestionIndex = index;
+                jumpModal.classList.add('hidden');
+                loadQuestion();
+            }
+        });
+
+        hintBtn.addEventListener('click', () => {
+            const currentHint = quizData[currentQuestionIndex].hint;
+            if (currentHint) {
+                hintText.textContent = currentHint;
+                hintModal.classList.remove('hidden');
+            }
+        });
+
+        closeHintModalBtn.addEventListener('click', () => {
+            hintModal.classList.add('hidden');
+        });
+
+        hintModal.addEventListener('click', (e) => {
+            if (e.target === hintModal) {
+                hintModal.classList.add('hidden');
+            }
+        });
+
+        leaderboardBtn.addEventListener('click', () => {
+            leaderboardModal.classList.remove('hidden');
+        });
+
+        closeLeaderboardModalBtn.addEventListener('click', () => {
+            leaderboardModal.classList.add('hidden');
+        });
+
+        leaderboardModal.addEventListener('click', (e) => {
+            if (e.target === leaderboardModal) {
+                leaderboardModal.classList.add('hidden');
+            }
+        });
+
+
+        populateJumpModal();
+        initializeFirebase();
+
+    </script>
+</body>
+</html>
